@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8" />
+<title>History of International Borders</title>
+<meta name="viewport" content="initial-scale=1,maximum-scale=1,user-scalable=no" />
+<script src="https://api.mapbox.com/mapbox-gl-js/v1.12.0/mapbox-gl.js"></script>
+<link href="https://api.mapbox.com/mapbox-gl-js/v1.12.0/mapbox-gl.css" rel="stylesheet" />
+<script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.28.0/moment.min.js" integrity="sha512-Q1f3TS3vSt1jQ8AwP2OuenztnLU6LwxgyyYOG1jgMW/cbEMHps/3wjvnl1P3WTrF3chJUWEoxDUEjMxDV8pujg==" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/lodash@4.17.20/lodash.min.js"></script>
+<style>
+body {
+  margin: 0;
+  padding: 0;
+  font-family: 'Helvetica Neue', Helvetica, Arial, Sans-serif;
+}
+
+#map {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 100%;
+}
+
+h1 {
+  font-size: 20px;
+  line-height: 30px;
+}
+
+h2 {
+  font-size: 14px;
+  line-height: 20px;
+  margin-bottom: 10px;
+}
+
+a {
+  color: black;
+}
+
+#console {
+  position: absolute;
+  width: 240px;
+  margin: 10px;
+  padding: 10px 20px;
+  background-color: white;
+}
+
+.session {
+  margin-bottom: 20px;
+}
+
+.row {
+  height: 12px;
+  width: 100%;
+}
+
+.colors {
+  background: linear-gradient(to right, #d01c8b, #f1b6da, #f7f7f7, #b8e186, #4dac26);
+  margin-top: 10px;
+  margin-bottom: 10px;
+}
+
+.label {
+  width: 15%;
+  display: inline-block;
+  text-align: center;
+}
+
+#legend {
+  display: none;
+}
+
+</style>
+</head>
+<body>
+<div id="map"></div>
+<div id='console'>
+    <h1>History of International Borders</h1>
+    <p>See the evolution of international borders from 1946 - 2016.</p>
+    <p>Data from <a href='http://nils.weidmann.ws/projects/cshapes/shapefile.html'>CShapes GIS</a></p>
+    <div class='session' id='sliderbar'>
+        <h2><label id='active-hour'>January 1, 1946</label></h2>
+        <input id='slider' class='row' type='range' min='0' max='840' step='1' value='0' />
+    </div>
+    <div>
+      <input id='checkbox' type="checkbox" />
+      <label>Show lifetime of polygons</label>
+      <div id='legend'>
+        <div class='row colors'></div>
+        <div class='row labels'>
+          <div class='label'>0</div>
+          <div class='label'>17.5</div>
+          <div class='label'>35</div>
+          <div class='label'>52.5</div>
+          <div class='label'>70</div>
+          <div class='label'>years</div>
+        </div>
+      </div>
+    </div>
+  </div>
+<script>
+	mapboxgl.accessToken = 'pk.eyJ1IjoiZ2VvaGFja2VyIiwiYSI6ImFIN0hENW8ifQ.GGpH9gLyEg0PZf3NPQ7Vrg';
+    var map = new mapboxgl.Map({
+        container: 'map', // container id
+        style: 'mapbox://styles/geohacker/ckf0rcd5w2u1m19qgic1rhtbk', // style URL
+        center: [25, 29], // starting position [lng, lat],
+        minzoom: 2,
+        zoom: 2, // starting zoom,
+        hash: true
+    });
+
+    const dates = []
+    const start = moment('1-1-1946', 'D-M-YYYY')
+    const end = moment('1-7-2016', 'D-M-YYYY')
+    for (let index = start; index.isBefore(end); index.add(1, 'month')) {
+      dates.push(index.format('D-M-YYYY'))
+    }
+    const setFilter = (thisDay) => {
+      // get all valid polygon ids
+      const valid = _.filter(featuremap, (o) => {
+        return moment(thisDay, 'D-M-YYYY').isBetween(moment(o.start, 'D-M-YYYY'), moment(o.end, 'D-M-YYYY'));
+      })
+
+      const ids = valid.map((v) => _.get(v, 'id'))
+        if (ids.length) {
+          map.setFilter('countries-lines', [
+            'match',
+            ['get', 'FEATUREID'],
+            ids,
+            true,
+            false
+          ])
+        }
+    }
+
+    map.on('load', () => {
+      document.getElementById('slider').addEventListener('input', function(e) {
+          const thisDay = dates[parseInt(e.target.value)];
+          // update the map
+          setFilter(thisDay)
+          
+          document.getElementById('active-hour').innerText = moment(thisDay, 'D-M-YYYY').format('MMMM Do, YYYY');
+      });
+
+      document.getElementById('checkbox').addEventListener('change', function(e) {
+        const visibile = e.target.checked ? 'visible' : 'none'
+        map.setLayoutProperty('countries-lifetime', 'visibility', visibile)
+        document.getElementById('legend').style.display = e.target.checked ? 'block' : 'none'
+      })
+    })
+</script>
+<script src='data/featuremap.js'></script>
+</body>
+</html>

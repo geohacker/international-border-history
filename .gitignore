@@ -1,0 +1,3 @@
+scripts/node_modules*
+data/countries-date.json
+data/countries-history-simple.geojson
